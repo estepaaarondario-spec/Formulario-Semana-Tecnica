@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Formulario de proyectos</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>📋</text></svg>">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#fff3f8;--card:#fff;--text:#d6336c;--muted:#e0679a;--line:#f06595;--accent:#e64980;--accent-t:#fff;--danger:#c2255c;color-scheme:light}
+#bg{position:fixed;inset:-25%;z-index:0;transform:rotate(-12deg);display:flex;flex-wrap:wrap;gap:30px 44px;align-content:flex-start;pointer-events:none;overflow:hidden}
+#bg span{font:700 1.5rem/1 Georgia,"Times New Roman",serif;color:#f8c8dc;white-space:nowrap}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.6rem;margin:8px 0 4px}
+p.sub{color:var(--muted);margin:0 0 20px}
+.card{background:#fff;border:2px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 4px 14px rgba(240,101,149,.15)}
+label{display:block;font-weight:600;margin:0 0 6px}
+input,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--text);font:inherit}
+input::placeholder,textarea::placeholder{color:#f1a6c3}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:8px;margin-bottom:8px}
+.row input:first-child{flex:1}
+.row input.qty{width:80px;flex:none}
+.field{margin-bottom:18px}
+button{font:inherit;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);padding:9px 14px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-t);border-color:var(--accent);font-weight:600;width:100%;padding:12px}
+button.x{padding:9px 12px;color:var(--danger)}
+.hint{color:var(--muted);font-size:.85rem;margin-top:4px}
+.msg{padding:10px 12px;border-radius:10px;margin-bottom:14px;background:var(--bg);border:1px solid var(--line)}
+.entry h3{margin:0 0 6px;font-size:1.1rem}
+.entry ul{margin:6px 0;padding-left:20px}
+.entry .meta{color:var(--muted);font-size:.9rem}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+<div id="bg" aria-hidden="true"></div>
+<main>
+  <h1>📋 Proyectos: ¿qué necesitan?</h1>
+  <p class="sub">Completá el formulario con el nombre de tu proyecto, quiénes lo integran y los materiales que necesitan.</p>
+
+  <form class="card" id="f" onsubmit="return false">
+    <div class="field">
+      <label for="proj">Nombre del proyecto</label>
+      <input id="proj" maxlength="100" placeholder="Ej: Maqueta del sistema solar">
+    </div>
+    <div class="field">
+      <label>Integrantes</label>
+      <div id="members"></div>
+      <button type="button" id="addM">+ Agregar integrante</button>
+    </div>
+    <div class="field">
+      <label>Materiales que necesitan</label>
+      <div id="mats"></div>
+      <button type="button" id="addT">+ Agregar material</button>
+      <div class="hint">Podés indicar la cantidad en el cuadro chico.</div>
+    </div>
+    <div class="field">
+      <label for="notes">Observaciones (opcional)</label>
+      <textarea id="notes" rows="3" maxlength="500"></textarea>
+    </div>
+    <div id="err" class="msg" hidden></div>
+    <button class="primary" id="send">Enviar</button>
+  </form>
+</main>
+<script>
+/* ============ CONFIGURACIÓN ============
+   Pegá acá tu link de Formspree (ver instrucciones en el README).
+   Cada envío te llega por mail y queda guardado en tu panel de Formspree. */
+const ENDPOINT = "https://formspree.io/f/mbggneqj;
+/* ====================================== */
+
+const $=id=>document.getElementById(id);
+{const P=['¡Vos podés!','Un paso a la vez','Juntos llegamos más lejos','Creá, soñá, hacelo','Equivocarse es aprender','Cada gran proyecto empieza con una idea','Confiá en vos','Tu esfuerzo vale la pena','Nada es imposible','Brillá con tu proyecto','Lo importante es empezar','Con ganas todo se puede'];const b=$('bg');for(let i=0;i<140;i++){const s=document.createElement('span');s.textContent=P[(i*5+Math.floor(i/12))%P.length];b.appendChild(s);}}
+
+function addRow(box,ph,withQty){
+  const r=document.createElement('div');r.className='row';
+  const i=document.createElement('input');i.placeholder=ph;i.maxLength=80;r.appendChild(i);
+  if(withQty){const q=document.createElement('input');q.className='qty';q.placeholder='Cant.';q.maxLength=10;r.appendChild(q);}
+  const b=document.createElement('button');b.type='button';b.className='x';b.textContent='✕';b.title='Quitar';
+  b.onclick=()=>{if(box.children.length>1)r.remove();else r.querySelectorAll('input').forEach(x=>x.value='');};
+  r.appendChild(b);box.appendChild(r);
+}
+function reset(){
+  $('proj').value='';$('notes').value='';
+  $('members').innerHTML='';$('mats').innerHTML='';
+  addRow($('members'),'Nombre y apellido');addRow($('mats'),'Ej: cartulina, cola vinílica…',true);
+}
+reset();
+$('addM').onclick=()=>addRow($('members'),'Nombre y apellido');
+$('addT').onclick=()=>addRow($('mats'),'Material',true);
+
+function show(msg,ok){const e=$('err');e.hidden=false;e.textContent=msg;e.style.color=ok?'var(--text)':'var(--danger)';}
+
+$('send').onclick=async()=>{
+  const name=$('proj').value.trim();
+  const members=[...$('members').querySelectorAll('.row')].map(r=>r.querySelector('input').value.trim()).filter(Boolean);
+  const materials=[...$('mats').querySelectorAll('.row')].map(r=>{const n=r.querySelectorAll('input');return{item:n[0].value.trim(),qty:n[1].value.trim()}}).filter(m=>m.item);
+  const notes=$('notes').value.trim();
+  if(!name) return show('Falta el nombre del proyecto.');
+  if(!members.length) return show('Agregá al menos un integrante.');
+  if(!materials.length) return show('Agregá al menos un material.');
+  const matTxt=materials.map(m=>'- '+m.item+(m.qty?' ('+m.qty+')':'')).join('\n');
+
+  if(ENDPOINT.includes('TU_CODIGO')){
+    const txt='Proyecto: '+name+'\nIntegrantes: '+members.join(', ')+'\nMateriales:\n'+matTxt+(notes?'\nObservaciones: '+notes:'');
+    try{await navigator.clipboard.writeText(txt);show('El envío no está configurado todavía. Copié tu pedido al portapapeles para que se lo pases al docente.',true);}
+    catch(e){show('El envío no está configurado todavía. Avisale al docente.');}
+    return;
+  }
+  $('send').disabled=true;
+  try{
+    const res=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({proyecto:name,integrantes:members.join(', '),materiales:matTxt,observaciones:notes})});
+    if(!res.ok) throw new Error();
+    reset();show('¡Listo! Tu proyecto fue enviado ✅',true);
+  }catch(e){show('No se pudo enviar. Revisá tu conexión y probá de nuevo.');}
+  $('send').disabled=false;
+};
+</script>
+</body>
+</html>
